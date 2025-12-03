@@ -32,7 +32,7 @@ yarn-error.log*
 Thumbs.db
 
 # Capacitor
-/android
+# /android - Necesario para builds en Ionic Appflow
 /ios
 /.capacitor
 

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nutri-IA Expert</string>
+    <string name="title_activity_main">Nutri-IA Expert</string>
+    <string name="package_name">com.nutriia.expert</string>
+    <string name="custom_url_scheme">com.nutriia.expert</string>
+</resources>
