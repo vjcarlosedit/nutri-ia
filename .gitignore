@@ -39,3 +39,11 @@ Thumbs.db
 # Ionic
 .ionic/
 
+# Backend
+server/.env
+server/data/
+server/node_modules/
+server/dist/
+server/*.log
+server/test-*.js
+

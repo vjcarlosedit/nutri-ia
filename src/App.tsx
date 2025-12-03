@@ -10,6 +10,7 @@ import { Settings } from './components/Settings';
 import { PatientsList } from './components/PatientsList';
 import { ConsultationsList } from './components/ConsultationsList';
 import { EvaluationsList } from './components/EvaluationsList';
+import { authAPI, evaluationsAPI } from './services/api';
 
 export type Screen = 
   | 'login' 
@@ -46,79 +47,59 @@ export default function App() {
     activePatients: 0
   });
 
-  // Calcular estadísticas desde localStorage
+  // Calcular estadísticas desde API
   useEffect(() => {
     if (isAuthenticated) {
       calculateStats();
     }
   }, [isAuthenticated, currentScreen]);
 
-  const calculateStats = () => {
-    // Obtener evaluaciones guardadas
-    const evaluations = JSON.parse(localStorage.getItem('nutriia_evaluations') || '[]');
-    
-    // Obtener planes alimenticios guardados
-    const mealPlans = JSON.parse(localStorage.getItem('nutriia_meal_plans') || '[]');
-    
-    // Obtener registros de monitoreo
-    const monitoringRecords = JSON.parse(localStorage.getItem('nutriia_monitoring_records') || '[]');
-
-    // Total de evaluaciones
-    const totalEvaluations = evaluations.length;
-
-    // Consultas de hoy (evaluaciones + planes creados hoy)
-    const today = new Date().toISOString().split('T')[0];
-    const todayEvaluations = evaluations.filter((e: any) => 
-      e.date && e.date.startsWith(today)
-    ).length;
-    const todayPlans = mealPlans.filter((p: any) => 
-      p.createdDate && p.createdDate.startsWith(today)
-    ).length;
-    const todayConsultations = todayEvaluations + todayPlans;
-
-    // Pacientes activos (únicos por nombre en evaluaciones)
-    const patientNames = new Set(evaluations.map((e: any) => e.patientName).filter(Boolean));
-    const activePatients = patientNames.size;
-
-    setStats({
-      totalEvaluations,
-      todayConsultations,
-      activePatients
-    });
-  };
-
-  const handleLogin = (email: string, password: string) => {
-    // Simulación de login
-    const storedUser = localStorage.getItem('nutriia_user');
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      if (user.email === email && user.password === password) {
-        setUserData(user);
-        setIsAuthenticated(true);
-        // Esperar 1.5 segundos antes de redirigir para mostrar el modal
-        setTimeout(() => {
-          setDashboardKey(prev => prev + 1); // Forzar remontaje del dashboard
-          setCurrentScreen('dashboard');
-        }, 1500);
-        return true;
-      }
+  const calculateStats = async () => {
+    try {
+      const statsData = await evaluationsAPI.getStats();
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
+      // Fallback a valores por defecto
+      setStats({
+        totalEvaluations: 0,
+        todayConsultations: 0,
+        activePatients: 0
+      });
     }
-    return false;
   };
 
-  const handleRegister = (data: any) => {
-    // Simulación de registro
-    const newUser = {
-      name: data.name,
-      email: data.email,
-      password: data.password
-    };
-    localStorage.setItem('nutriia_user', JSON.stringify(newUser));
-    // Redirigir al login después de registrarse
-    setCurrentScreen('login');
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const response = await authAPI.login(email, password);
+      setUserData(response.user);
+      setIsAuthenticated(true);
+      // Esperar 1.5 segundos antes de redirigir para mostrar el modal
+      setTimeout(() => {
+        setDashboardKey(prev => prev + 1); // Forzar remontaje del dashboard
+        setCurrentScreen('dashboard');
+      }, 1500);
+      return true;
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      return false;
+    }
+  };
+
+  const handleRegister = async (data: any) => {
+    try {
+      await authAPI.register(data.name, data.email, data.password);
+      // Redirigir al login después de registrarse
+      setCurrentScreen('login');
+      return true;
+    } catch (error: any) {
+      console.error('Error en registro:', error);
+      return false;
+    }
   };
 
   const handleLogout = () => {
+    authAPI.logout();
     setIsAuthenticated(false);
     setUserData(null);
     setCurrentScreen('login');
